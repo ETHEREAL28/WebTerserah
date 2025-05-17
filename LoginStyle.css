@@ -1,0 +1,101 @@
+body {
+    background: linear-gradient(to bottom, #0F2027, #203A43, #2C5364);
+    margin: 0;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Jost', sans-serif;
+    display: flex;
+    overflow: hidden;
+}
+
+.main{
+    width: 350px;
+    height: 500px;
+    background: darkgrey;
+    overflow: hidden;
+    border-radius: 10px;
+    box-shadow: 5px 20px 50px black;
+}
+
+#klik{
+    display: none;
+}
+
+.SignUp{
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+label{
+    color: white;
+    font-size: 2.3em;
+    justify-content: center;
+    display: flex;
+    font-weight: bold;
+    cursor: pointer;
+    transition: .5s ease-in-out;
+}
+
+input{
+    width: 60%;
+    height: 20px;
+    background: white;
+    justify-content: center;
+    display: flex;
+    margin: 20px auto;
+    padding: 10px;
+    border: none;
+    outline: none;
+    border-radius: 5px;
+}
+
+button{
+    width: 60%;
+    height: 40px;
+    margin: 10px auto;
+    color: #0F2027;
+    font-size: 1em;
+    font-weight: bold;
+    background: white;
+    justify-content: center;
+    display: block;
+    margin top: 20px;
+    padding: 10px;
+    border: none;
+    outline: none;
+    border-radius: 5px;
+    transition: .2s ease-in;
+    cursor: pointer;
+}
+
+button:hover{
+    background: #34eeff;
+}
+
+.SignIn{
+    height: 600px;
+    background: #2C5364;
+    border-radius: 60%/10%;
+    transform: translateY(-60px);
+    transition: .8s ease-in-out;
+}
+
+.SignIn label{
+    color: #ffffff;
+    transform: scale(.6);
+}
+
+#klik:checked ~ .SignIn{
+    transform: translateY(-450px);
+}
+
+#klik:checked ~ .SignIn label{
+    transform: scale(.6);
+}
+
+#klik:checked ~ .SignUp label{
+    transform: scale(.6);
+}
