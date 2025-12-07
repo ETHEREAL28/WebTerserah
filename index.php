@@ -17,7 +17,7 @@ if (isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - TERSERAHMART</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/login.css">
     <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 </head>
 <body class="login-page">
@@ -57,11 +57,6 @@ if (isset($_SESSION['user_id'])) {
 
             <div class="login-footer">
                 <p>Belum punya akun? <a href="register.php">Daftar Sekarang</a></p>
-                <div class="demo-accounts">
-                    <p><strong>Demo Accounts:</strong></p>
-                    <p>Admin: <code>admin / password123</code></p>
-                    <p>Customer: <code>customer1 / password123</code></p>
-                </div>
             </div>
         </div>
     </div>
