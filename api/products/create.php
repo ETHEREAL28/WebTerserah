@@ -42,4 +42,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     sendResponse(false, 'Method tidak diizinkan!');
 }
 ?>
-
