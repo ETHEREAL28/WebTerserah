@@ -1,312 +1,265 @@
 <?php
-require_once 'api/config.php';
+session_start();
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+    header('Location: ../index.php');
+    exit;
+}
 
+require_once '../api/config.php';
 $conn = getConnection();
 
-// Get all products with category
-$sqlProducts = "SELECT p.*, c.name as category_name 
-                FROM products p 
-                LEFT JOIN categories c ON p.category_id = c.id 
-                ORDER BY p.created_at DESC";
-$resultProducts = $conn->query($sqlProducts);
+$userId = $_SESSION['user_id'];
+$user = $conn->query("SELECT * FROM users WHERE id = $userId")->fetch_assoc();
 
-// Get categories
-$sqlCategories = "SELECT * FROM categories ORDER BY name";
-$resultCategories = $conn->query($sqlCategories);
+// Get statistics
+$totalProducts = $conn->query("SELECT COUNT(*) as count FROM products")->fetch_assoc()['count'];
+$totalOrders = $conn->query("SELECT COUNT(*) as count FROM orders")->fetch_assoc()['count'];
+$totalRevenue = $conn->query("SELECT SUM(total_amount) as total FROM orders")->fetch_assoc()['total'] ?? 0;
+$lowStock = $conn->query("SELECT COUNT(*) as count FROM products WHERE stock < 10")->fetch_assoc()['count'];
+$totalCustomers = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'customer'")->fetch_assoc()['count'];
 
-// Get customers
-$sqlCustomers = "SELECT * FROM customers ORDER BY name";
-$resultCustomers = $conn->query($sqlCustomers);
+// Recent orders
+$recentOrders = $conn->query("SELECT o.*, u.full_name FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC LIMIT 5");
+
+// Low stock products
+$lowStockProducts = $conn->query("SELECT * FROM products WHERE stock < 10 ORDER BY stock ASC LIMIT 5");
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - TERSERAHMART</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Admin Dashboard - TERSERAHMART</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 </head>
 <body>
-    <!-- Sidebar -->
+    <button class="hamburger-menu" id="hamburgerBtn">
+        <span class="iconify" data-icon="mdi:menu"></span>
+    </button>
+
     <div class="sidebar" id="sidebar">
-        <div class="hamburger" id="hamburger">
-            <span></span>
-            <span></span>
-            <span></span>
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span class="iconify" data-icon="mdi:store"></span>
+                <h2>TERSERAHMART</h2>
+            </div>
         </div>
+
         <nav class="sidebar-nav">
-            <a href="index.php" class="nav-link">BERANDA</a>
-            <a href="#" class="nav-link active" data-page="products">KELOLA PRODUK</a>
-            <a href="#" class="nav-link" data-page="categories">KELOLA KATEGORI</a>
-            <a href="#" class="nav-link" data-page="customers">KELOLA CUSTOMER</a>
+            <a href="dashboard.php" class="nav-link active">
+                <span class="iconify" data-icon="mdi:view-dashboard"></span>
+                Dashboard
+            </a>
+            <a href="products.php" class="nav-link">
+                <span class="iconify" data-icon="mdi:package-variant"></span>
+                Produk
+            </a>
+            <a href="categories.php" class="nav-link">
+                <span class="iconify" data-icon="mdi:shape"></span>
+                Kategori
+            </a>
+            <a href="orders.php" class="nav-link">
+                <span class="iconify" data-icon="mdi:clipboard-list"></span>
+                Pesanan
+            </a>
+            <a href="customers.php" class="nav-link">
+                <span class="iconify" data-icon="mdi:account-group"></span>
+                Customer
+            </a>
         </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar" style="background: #f44336;">A</div>
+                <div class="user-details">
+                    <h4><?php echo htmlspecialchars($user['full_name']); ?></h4>
+                    <p>Administrator</p>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="logout()">
+                <span class="iconify" data-icon="mdi:logout"></span>
+                Logout
+            </button>
+        </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <header>
-            <h1>TERSERAHMART</h1>
-            <p class="subtitle">Admin Panel</p>
-        </header>
+    <div class="main-content" id="mainContent">
+        <div class="page-header">
+            <h1>Dashboard</h1>
+            <p>Selamat datang kembali, <?php echo htmlspecialchars($user['full_name']); ?>!</p>
+        </div>
 
-        <!-- Kelola Produk -->
-        <div id="products-page" class="page active">
-            <h2>KELOLA PRODUK</h2>
-            
-            <div class="admin-actions">
-                <button class="btn-add" id="btn-add-product">+ Tambah Produk Baru</button>
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <span class="iconify" data-icon="mdi:package-variant"></span>
+                </div>
+                <div class="stat-info">
+                    <h3><?php echo $totalProducts; ?></h3>
+                    <p>Total Produk</p>
+                </div>
             </div>
 
-            <!-- Form Tambah/Edit Produk -->
-            <div class="product-form-container" id="product-form-container" style="display: none;">
-                <h3 id="form-title">Tambah Produk Baru</h3>
-                <form id="product-form">
-                    <input type="hidden" id="product-id" name="id">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Nama Produk: *</label>
-                            <input type="text" id="product-name" name="name" required>
-                        </div>
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <span class="iconify" data-icon="mdi:clipboard-list"></span>
+                </div>
+                <div class="stat-info">
+                    <h3><?php echo $totalOrders; ?></h3>
+                    <p>Total Pesanan</p>
+                </div>
+            </div>
 
-                        <div class="form-group">
-                            <label>Barcode: *</label>
-                            <input type="text" id="product-barcode" name="barcode" required>
-                        </div>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">
+                    <span class="iconify" data-icon="mdi:cash-multiple"></span>
+                </div>
+                <div class="stat-info">
+                    <h3>Rp <?php echo number_format($totalRevenue, 0, ',', '.'); ?></h3>
+                    <p>Total Pendapatan</p>
+                </div>
+            </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Kategori: *</label>
-                            <select id="product-category" name="category_id" required>
-                                <option value="">Pilih Kategori</option>
-                                <?php
-                                $resultCategories->data_seek(0);
-                                while($category = $resultCategories->fetch_assoc()):
-                                ?>
-                                    <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
+            <div class="stat-card">
+                <div class="stat-icon red">
+                    <span class="iconify" data-icon="mdi:alert"></span>
+                </div>
+                <div class="stat-info">
+                    <h3><?php echo $lowStock; ?></h3>
+                    <p>Stok Rendah</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- Recent Orders -->
+            <div style="background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px;">
+                <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <span class="iconify" data-icon="mdi:clipboard-list" style="color: #667eea;"></span>
+                    Pesanan Terbaru
+                </h3>
+
+                <?php if ($recentOrders->num_rows > 0): ?>
+                    <div style="overflow-x: auto;">
+                        <table style="border: none;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 10px;">ID</th>
+                                    <th style="padding: 10px;">Customer</th>
+                                    <th style="padding: 10px;">Total</th>
+                                    <th style="padding: 10px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php while($order = $recentOrders->fetch_assoc()): ?>
+                                    <tr>
+                                        <td style="padding: 10px;">#<?php echo $order['id']; ?></td>
+                                        <td style="padding: 10px;"><?php echo htmlspecialchars($order['full_name']); ?></td>
+                                        <td style="padding: 10px;">Rp <?php echo number_format($order['total_amount'], 0, ',', '.'); ?></td>
+                                        <td style="padding: 10px;">
+                                            <span style="padding: 4px 12px; background: #e8f5e9; color: #4caf50; border-radius: 20px; font-size: 0.85em; font-weight: 600;">
+                                                <?php echo $order['status']; ?>
+                                            </span>
+                                        </td>
+                                    </tr>
                                 <?php endwhile; ?>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Harga: *</label>
-                            <input type="number" id="product-price" name="price" required min="0">
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Stok: *</label>
-                            <input type="number" id="product-stock" name="stock" required min="0">
-                        </div>
-
-                        <div class="form-group">
-                            <label>URL Gambar: *</label>
-                            <input type="text" id="product-image" name="image" required placeholder="https://...">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Deskripsi:</label>
-                        <textarea id="product-description" name="description" rows="3"></textarea>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn-save">Simpan</button>
-                        <button type="button" class="btn-cancel" id="btn-cancel">Batal</button>
-                    </div>
-                </form>
+                <?php else: ?>
+                    <p style="text-align: center; color: #999; padding: 20px;">Belum ada pesanan</p>
+                <?php endif; ?>
             </div>
 
-            <!-- Daftar Produk -->
-            <div class="admin-product-list">
-                <h3>Daftar Semua Produk</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Gambar</th>
-                            <th>Nama</th>
-                            <th>Barcode</th>
-                            <th>Kategori</th>
-                            <th>Harga</th>
-                            <th>Stok</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if ($resultProducts->num_rows > 0): ?>
-                            <?php while($product = $resultProducts->fetch_assoc()): ?>
-                                <tr data-aos="fade-up">
-                                    <td><?php echo $product['id']; ?></td>
-                                    <td>
-                                        <img src="<?php echo htmlspecialchars($product['image']); ?>" 
-                                             alt="<?php echo htmlspecialchars($product['name']); ?>"
-                                             onerror="this.src='https://via.placeholder.com/60'">
-                                    </td>
-                                    <td><?php echo htmlspecialchars($product['name']); ?></td>
-                                    <td><?php echo htmlspecialchars($product['barcode']); ?></td>
-                                    <td><?php echo htmlspecialchars($product['category_name']); ?></td>
-                                    <td>Rp <?php echo number_format($product['price'], 0, ',', '.'); ?></td>
-                                    <td><?php echo $product['stock']; ?></td>
-                                    <td>
-                                        <button class="btn-edit" onclick='editProduct(<?php echo json_encode($product); ?>)'>Edit</button>
-                                        <button class="btn-delete" onclick="deleteProduct(<?php echo $product['id']; ?>)">Hapus</button>
-                                    </td>
+            <!-- Low Stock Products -->
+            <div style="background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px;">
+                <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <span class="iconify" data-icon="mdi:alert" style="color: #f44336;"></span>
+                    Produk Stok Rendah
+                </h3>
+
+                <?php if ($lowStockProducts->num_rows > 0): ?>
+                    <div style="overflow-x: auto;">
+                        <table style="border: none;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 10px;">Produk</th>
+                                    <th style="padding: 10px;">Stok</th>
+                                    <th style="padding: 10px;">Aksi</th>
                                 </tr>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="8" style="text-align: center;">Belum ada produk.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody>
+                                <?php while($product = $lowStockProducts->fetch_assoc()): ?>
+                                    <tr>
+                                        <td style="padding: 10px;"><?php echo htmlspecialchars($product['name']); ?></td>
+                                        <td style="padding: 10px;">
+                                            <span style="padding: 4px 12px; background: #ffebee; color: #f44336; border-radius: 20px; font-size: 0.85em; font-weight: 600;">
+                                                <?php echo $product['stock']; ?> pcs
+                                            </span>
+                                        </td>
+                                        <td style="padding: 10px;">
+                                            <a href="products.php" style="color: #667eea; text-decoration: none; font-weight: 600;">
+                                                <span class="iconify" data-icon="mdi:pencil"></span>
+                                                Edit
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <p style="text-align: center; color: #999; padding: 20px;">Semua produk stok aman</p>
+                <?php endif; ?>
             </div>
         </div>
 
-        <!-- Kelola Kategori -->
-        <div id="categories-page" class="page">
-            <h2>KELOLA KATEGORI</h2>
-            
-            <div class="admin-actions">
-                <button class="btn-add" id="btn-add-category">+ Tambah Kategori Baru</button>
-            </div>
+        <!-- Additional Stats -->
+        <div style="margin-top: 20px; background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px;">
+            <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                <span class="iconify" data-icon="mdi:chart-line" style="color: #667eea;"></span>
+                Statistik Lainnya
+            </h3>
 
-            <!-- Form Kategori -->
-            <div class="product-form-container" id="category-form-container" style="display: none;">
-                <h3 id="category-form-title">Tambah Kategori Baru</h3>
-                <form id="category-form">
-                    <input type="hidden" id="category-id" name="id">
-                    
-                    <div class="form-group">
-                        <label>Nama Kategori: *</label>
-                        <input type="text" id="category-name" name="name" required>
-                    </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div style="text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+                    <span class="iconify" data-icon="mdi:account-group" style="font-size: 40px; color: #667eea; margin-bottom: 10px;"></span>
+                    <h4 style="font-size: 1.8em; margin-bottom: 5px;"><?php echo $totalCustomers; ?></h4>
+                    <p style="color: #999; font-size: 0.9em;">Total Customer</p>
+                </div>
 
-                    <div class="form-actions">
-                        <button type="submit" class="btn-save">Simpan</button>
-                        <button type="button" class="btn-cancel" id="btn-cancel-category">Batal</button>
-                    </div>
-                </form>
-            </div>
+                <div style="text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+                    <span class="iconify" data-icon="mdi:shape" style="font-size: 40px; color: #4caf50; margin-bottom: 10px;"></span>
+                    <?php $totalCat = $conn->query("SELECT COUNT(*) as count FROM categories")->fetch_assoc()['count']; ?>
+                    <h4 style="font-size: 1.8em; margin-bottom: 5px;"><?php echo $totalCat; ?></h4>
+                    <p style="color: #999; font-size: 0.9em;">Total Kategori</p>
+                </div>
 
-            <!-- Daftar Kategori -->
-            <div class="admin-product-list">
-                <h3>Daftar Kategori</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nama Kategori</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $resultCategories->data_seek(0);
-                        if ($resultCategories->num_rows > 0):
-                            while($category = $resultCategories->fetch_assoc()):
-                        ?>
-                            <tr data-aos="fade-up">
-                                <td><?php echo $category['id']; ?></td>
-                                <td><?php echo htmlspecialchars($category['name']); ?></td>
-                                <td>
-                                    <button class="btn-edit" onclick='editCategory(<?php echo json_encode($category); ?>)'>Edit</button>
-                                    <button class="btn-delete" onclick="deleteCategory(<?php echo $category['id']; ?>)">Hapus</button>
-                                </td>
-                            </tr>
-                        <?php 
-                            endwhile;
-                        else: 
-                        ?>
-                            <tr>
-                                <td colspan="3" style="text-align: center;">Belum ada kategori.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Kelola Customer -->
-        <div id="customers-page" class="page">
-            <h2>KELOLA CUSTOMER</h2>
-            
-            <div class="admin-actions">
-                <button class="btn-add" id="btn-add-customer">+ Tambah Customer Baru</button>
-            </div>
-
-            <!-- Form Customer -->
-            <div class="product-form-container" id="customer-form-container" style="display: none;">
-                <h3 id="customer-form-title">Tambah Customer Baru</h3>
-                <form id="customer-form">
-                    <input type="hidden" id="customer-id" name="id">
-                    
-                    <div class="form-group">
-                        <label>Nama Customer: *</label>
-                        <input type="text" id="customer-name" name="name" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>No. Telepon:</label>
-                            <input type="text" id="customer-phone" name="phone">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Alamat:</label>
-                            <textarea id="customer-address" name="address" rows="2"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn-save">Simpan</button>
-                        <button type="button" class="btn-cancel" id="btn-cancel-customer">Batal</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Daftar Customer -->
-            <div class="admin-product-list">
-                <h3>Daftar Customer</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nama</th>
-                            <th>Telepon</th>
-                            <th>Alamat</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if ($resultCustomers->num_rows > 0): ?>
-                            <?php while($customer = $resultCustomers->fetch_assoc()): ?>
-                                <tr data-aos="fade-up">
-                                    <td><?php echo $customer['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($customer['name']); ?></td>
-                                    <td><?php echo htmlspecialchars($customer['phone'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($customer['address'] ?? '-'); ?></td>
-                                    <td>
-                                        <button class="btn-edit" onclick='editCustomer(<?php echo json_encode($customer); ?>)'>Edit</button>
-                                        <button class="btn-delete" onclick="deleteCustomer(<?php echo $customer['id']; ?>)">Hapus</button>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="5" style="text-align: center;">Belum ada customer.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                <div style="text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+                    <span class="iconify" data-icon="mdi:clock-outline" style="font-size: 40px; color: #ff9800; margin-bottom: 10px;"></span>
+                    <?php $pending = $conn->query("SELECT COUNT(*) as count FROM orders WHERE status = 'Pending'")->fetch_assoc()['count']; ?>
+                    <h4 style="font-size: 1.8em; margin-bottom: 5px;"><?php echo $pending; ?></h4>
+                    <p style="color: #999; font-size: 0.9em;">Pesanan Pending</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="js/script.js"></script>
+    <script>
+        document.getElementById('hamburgerBtn').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('visible');
+            document.getElementById('mainContent').classList.toggle('expanded');
+        });
+        
+        function logout() {
+            if (confirm('Yakin ingin logout?')) {
+                window.location.href = '../api/auth/logout.php';
+            }
+        }
+    </script>
 </body>
 </html>
 <?php closeConnection($conn); ?>
