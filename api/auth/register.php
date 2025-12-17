@@ -4,20 +4,21 @@ require_once '../config.php';
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $fullName = $_POST['full_name'] ?? '';
-    $phone = $_POST['phone'] ?? '';
-    $address = $_POST['address'] ?? '';
+    $input = getJsonInput();
+    $username = $input['username'] ?? '';
+    $password = $input['password'] ?? '';
+    $email = $input['email'] ?? '';
+    $fullName = $input['full_name'] ?? '';
+    $phone = $input['phone'] ?? '';
+    $address = $input['address'] ?? '';
     
     if (empty($username) || empty($password) || empty($email) || empty($fullName)) {
-        sendResponse(false, 'Semua field wajib diisi!');
+        sendResponse(false, 'Semua field wajib diisi (username, password, email, full_name)!');
     }
     
     $conn = getConnection();
     
-    // Check if username exists
+
     $checkStmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
     $checkStmt->bind_param("s", $username);
     $checkStmt->execute();
@@ -26,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $checkStmt->close();
     
-    // Hash password
+
     $hashedPassword = md5($password);
     
     $stmt = $conn->prepare("INSERT INTO users (username, password, email, full_name, phone, address, role) VALUES (?, ?, ?, ?, ?, ?, 'customer')");

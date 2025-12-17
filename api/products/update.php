@@ -4,14 +4,15 @@ require_once '../config.php';
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['id'] ?? 0;
-    $name = $_POST['name'] ?? '';
-    $categoryId = $_POST['category_id'] ?? 0;
-    $price = $_POST['price'] ?? 0;
-    $stock = $_POST['stock'] ?? 0;
-    $image = $_POST['image'] ?? '';
-    $barcode = $_POST['barcode'] ?? '';
-    $description = $_POST['description'] ?? '';
+    $input = getJsonInput();
+    $id = $input['id'] ?? 0;
+    $name = $input['name'] ?? '';
+    $categoryId = $input['category_id'] ?? 0;
+    $price = $input['price'] ?? 0;
+    $stock = $input['stock'] ?? 0;
+    $image = $input['image'] ?? '';
+    $barcode = $input['barcode'] ?? '';
+    $description = $input['description'] ?? '';
     
     if (empty($id) || empty($name) || empty($categoryId) || empty($price) || empty($barcode) || empty($image)) {
         sendResponse(false, 'Data tidak lengkap!');
@@ -19,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $conn = getConnection();
     
-    // Check if barcode exists (except current product)
+
     $checkStmt = $conn->prepare("SELECT id FROM products WHERE barcode = ? AND id != ?");
     $checkStmt->bind_param("si", $barcode, $id);
     $checkStmt->execute();

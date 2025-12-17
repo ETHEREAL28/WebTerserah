@@ -11,14 +11,14 @@ $conn = getConnection();
 $userId = $_SESSION['user_id'];
 $user = $conn->query("SELECT * FROM users WHERE id = $userId")->fetch_assoc();
 
-// Get cart items
+
 $cartQuery = "SELECT c.id as cart_id, c.quantity, p.* 
               FROM cart c 
               JOIN products p ON c.product_id = p.id 
               WHERE c.user_id = $userId";
 $cartItems = $conn->query($cartQuery);
 
-// Calculate total
+
 $total = 0;
 $items = [];
 while ($item = $cartItems->fetch_assoc()) {
@@ -96,7 +96,7 @@ $cartCount = count($items);
 
         <?php if (count($items) > 0): ?>
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-                <!-- Cart Items -->
+
                 <div>
                     <?php foreach ($items as $item): ?>
                         <div style="background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; margin-bottom: 15px; display: flex; gap: 20px;">
@@ -129,7 +129,7 @@ $cartCount = count($items);
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Order Summary -->
+
                 <div>
                     <div style="background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px; position: sticky; top: 20px;">
                         <h3 style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">Ringkasan Belanja</h3>
@@ -146,6 +146,14 @@ $cartCount = count($items);
                         </div>
                         
                         <div style="padding-top: 20px; border-top: 2px solid #e0e0e0; margin-bottom: 20px;">
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Metode Pembayaran</label>
+                                <select id="paymentMethod" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                                    <option value="">Pilih Metode Pembayaran</option>
+                                    <option value="transfer">Transfer Bank</option>
+                                    <option value="cod">Cash on Delivery (COD)</option>
+                                </select>
+                            </div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-size: 1.1em; font-weight: 600;">Total Pembayaran</span>
                                 <span style="font-size: 1.5em; font-weight: 700; color: #667eea;">Rp <?php echo number_format($total, 0, ',', '.'); ?></span>
@@ -234,9 +242,35 @@ $cartCount = count($items);
             }
         }
         
-        function checkout() {
-            if (confirm('Lanjutkan ke pembayaran?')) {
-                window.location.href = 'checkout.php';
+        async function checkout() {
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            if (!paymentMethod) {
+                alert('Silakan pilih metode pembayaran!');
+                return;
+            }
+            
+            if (!confirm('Lanjutkan ke pembayaran?')) return;
+            
+            const formData = new FormData();
+            formData.append('payment_method', paymentMethod);
+            
+            try {
+                const response = await fetch('checkout.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.status) {
+                    alert('Checkout berhasil! ID Order: ' + result.order_id);
+                    window.location.href = 'orders.php';
+                } else {
+                    alert('Checkout gagal: ' + result.message);
+                }
+            } catch (error) {
+                alert('Terjadi kesalahan saat checkout!');
+                console.error(error);
             }
         }
         

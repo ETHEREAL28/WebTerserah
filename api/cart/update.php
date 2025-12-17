@@ -10,8 +10,9 @@ if (!isset($_SESSION['user_id'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userId = $_SESSION['user_id'];
-    $cartId = $_POST['cart_id'] ?? 0;
-    $quantity = $_POST['quantity'] ?? 1;
+    $input = getJsonInput();
+    $cartId = $input['cart_id'] ?? 0;
+    $quantity = $input['quantity'] ?? 1;
     
     if (empty($cartId) || $quantity < 1) {
         sendResponse(false, 'Data tidak valid!');
@@ -19,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $conn = getConnection();
     
-    // Get product stock
+
     $checkStmt = $conn->prepare("SELECT p.stock FROM cart c JOIN products p ON c.product_id = p.id WHERE c.id = ? AND c.user_id = ?");
     $checkStmt->bind_param("ii", $cartId, $userId);
     $checkStmt->execute();

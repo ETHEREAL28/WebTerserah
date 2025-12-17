@@ -5,8 +5,9 @@ require_once '../config.php';
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
+    $input = getJsonInput();
+    $username = $input['username'] ?? '';
+    $password = $input['password'] ?? '';
     
     if (empty($username) || empty($password)) {
         sendResponse(false, 'Username dan password harus diisi!');
@@ -14,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $conn = getConnection();
     
-    // Hash password dengan md5 (untuk simplicity, gunakan password_hash untuk production)
+
     $hashedPassword = md5($password);
     
     $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? AND password = ?");
@@ -25,13 +26,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result->num_rows > 0) {
         $user = $result->fetch_assoc();
         
-        // Set session
+
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['full_name'] = $user['full_name'];
         $_SESSION['role'] = $user['role'];
         
         sendResponse(true, 'Login berhasil!', [
+            'user_id' => $user['id'],
+            'username' => $user['username'],
             'role' => $user['role'],
             'full_name' => $user['full_name']
         ]);

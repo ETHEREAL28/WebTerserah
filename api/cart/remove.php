@@ -10,7 +10,8 @@ if (!isset($_SESSION['user_id'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userId = $_SESSION['user_id'];
-    $cartId = $_POST['cart_id'] ?? 0;
+    $input = getJsonInput();
+    $cartId = $input['cart_id'] ?? 0;
     
     if (empty($cartId)) {
         sendResponse(false, 'ID tidak valid!');

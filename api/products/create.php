@@ -4,13 +4,14 @@ require_once '../config.php';
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = $_POST['name'] ?? '';
-    $categoryId = $_POST['category_id'] ?? 0;
-    $price = $_POST['price'] ?? 0;
-    $stock = $_POST['stock'] ?? 0;
-    $image = $_POST['image'] ?? '';
-    $barcode = $_POST['barcode'] ?? '';
-    $description = $_POST['description'] ?? '';
+    $input = getJsonInput();
+    $name = $input['name'] ?? '';
+    $categoryId = $input['category_id'] ?? 0;
+    $price = $input['price'] ?? 0;
+    $stock = $input['stock'] ?? 0;
+    $image = $input['image'] ?? '';
+    $barcode = $input['barcode'] ?? '';
+    $description = $input['description'] ?? '';
     
     if (empty($name) || empty($categoryId) || empty($price) || empty($barcode) || empty($image)) {
         sendResponse(false, 'Data tidak lengkap!');
@@ -18,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $conn = getConnection();
     
-    // Check if barcode exists
+
     $checkStmt = $conn->prepare("SELECT id FROM products WHERE barcode = ?");
     $checkStmt->bind_param("s", $barcode);
     $checkStmt->execute();

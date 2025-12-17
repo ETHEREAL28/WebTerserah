@@ -8,18 +8,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'customer') {
 require_once '../api/config.php';
 $conn = getConnection();
 
-// Get user info
+
 $userId = $_SESSION['user_id'];
 $userQuery = $conn->query("SELECT * FROM users WHERE id = $userId");
 $user = $userQuery->fetch_assoc();
 
-// Get cart count
+
 $cartCount = $conn->query("SELECT COUNT(*) as count FROM cart WHERE user_id = $userId")->fetch_assoc()['count'];
 
-// Get categories
+
 $categories = $conn->query("SELECT * FROM categories ORDER BY name");
 
-// Get products
+
 $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.name");
 ?>
 <!DOCTYPE html>
@@ -32,12 +32,12 @@ $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LE
     <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 </head>
 <body>
-    <!-- Hamburger Menu Button -->
+
     <button class="hamburger-menu" id="hamburgerBtn">
         <span class="iconify" data-icon="mdi:menu"></span>
     </button>
 
-    <!-- Sidebar -->
+
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
@@ -83,14 +83,14 @@ $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LE
         </div>
     </div>
 
-    <!-- Main Content -->
+
     <div class="main-content" id="mainContent">
         <div class="page-header">
             <h1>Selamat Datang, <?php echo htmlspecialchars($user['full_name']); ?>!</h1>
             <p>Temukan produk kebutuhan Anda di TERSERAHMART</p>
         </div>
 
-        <!-- Filter by Category -->
+
         <div class="filter-section" style="margin-bottom: 25px;">
             <select id="categoryFilter" style="padding: 10px 15px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 1em; cursor: pointer;">
                 <option value="">Semua Kategori</option>
@@ -100,7 +100,7 @@ $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LE
             </select>
         </div>
 
-        <!-- Products Grid -->
+
         <div class="products-grid" id="productsGrid">
             <?php while($product = $products->fetch_assoc()): ?>
                 <div class="product-card" data-category="<?php echo $product['category_id']; ?>" onclick="showProductDetail(<?php echo htmlspecialchars(json_encode($product)); ?>)">
@@ -119,7 +119,7 @@ $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LE
         </div>
     </div>
 
-    <!-- Product Detail Modal -->
+
     <div class="modal" id="productModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -156,7 +156,7 @@ $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LE
     <script>
         let currentProduct = null;
         
-        // Hamburger Menu Toggle
+
         document.getElementById('hamburgerBtn').addEventListener('click', function() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('mainContent');
@@ -164,7 +164,7 @@ $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LE
             mainContent.classList.toggle('expanded');
         });
         
-        // Category Filter
+
         document.getElementById('categoryFilter').addEventListener('change', function() {
             const categoryId = this.value;
             const products = document.querySelectorAll('.product-card');
@@ -178,7 +178,7 @@ $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LE
             });
         });
         
-        // Show Product Detail
+
         function showProductDetail(product) {
             currentProduct = product;
             document.getElementById('modalProductName').textContent = product.name;
@@ -194,12 +194,12 @@ $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LE
             document.getElementById('productModal').classList.add('active');
         }
         
-        // Close Modal
+
         function closeModal() {
             document.getElementById('productModal').classList.remove('active');
         }
         
-        // Add to Cart
+
         async function addToCart() {
             const quantity = parseInt(document.getElementById('modalQuantity').value);
             
@@ -237,14 +237,14 @@ $products = $conn->query("SELECT p.*, c.name as category_name FROM products p LE
             }
         }
         
-        // Logout
+
         function logout() {
             if (confirm('Yakin ingin logout?')) {
                 window.location.href = '../api/auth/logout.php';
             }
         }
         
-        // Close modal when clicking outside
+
         document.getElementById('productModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();

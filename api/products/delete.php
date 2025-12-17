@@ -4,7 +4,8 @@ require_once '../config.php';
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['id'] ?? 0;
+    $input = getJsonInput();
+    $id = $input['id'] ?? 0;
     
     if (empty($id)) {
         sendResponse(false, 'ID produk harus diisi!');

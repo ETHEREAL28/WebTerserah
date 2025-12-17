@@ -5,17 +5,28 @@
 session_start();
 
 // Include database connection
-include 'db_connection.php';
+include '../api/config.php';
 
 // Fetch products from the database
 function fetchProducts($conn) {
     $sql = "SELECT * FROM products";
     $result = $conn->query($sql);
+
+    if (!$result) {
+        die("Query failed: " . $conn->error);
+    }
+
     return $result->fetch_all(MYSQLI_ASSOC);
 }
 
+// Get connection
+$conn = getConnection();
+
 // Display products
 $products = fetchProducts($conn);
+
+// Close connection after use
+closeConnection($conn);
 ?>
 
 <!DOCTYPE html>
@@ -36,10 +47,10 @@ $products = fetchProducts($conn);
         </tr>
         <?php foreach ($products as $product): ?>
         <tr>
-            <td><?php echo $product['id']; ?></td>
-            <td><?php echo $product['name']; ?></td>
-            <td><?php echo $product['price']; ?></td>
-            <td><?php echo $product['description']; ?></td>
+            <td><?php echo htmlspecialchars($product['id']); ?></td>
+            <td><?php echo htmlspecialchars($product['name']); ?></td>
+            <td><?php echo htmlspecialchars($product['price']); ?></td>
+            <td><?php echo htmlspecialchars($product['description']); ?></td>
         </tr>
         <?php endforeach; ?>
     </table>
